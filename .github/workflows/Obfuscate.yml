@@ -1,3 +1,5 @@
+# GitHub Actions Workflow Configuration
+
 name: Build Obfuscate BPB Panel
 
 on:
@@ -35,19 +37,32 @@ jobs:
         run: |
           javascript-obfuscator origin.js --output _worker.js \
           --compact true \
-          --identifier-names-generator hexadecimal \
+          --identifier-names-generator short \  # 使用较短的标识符生成器以减少文件大小
           --rename-globals true \
-          --string-array true \
+          --string-array false \  # 禁用字符串数组以减少文件大小
           --string-array-encoding 'base64' \
           --string-array-threshold 0.75 \
-          --transform-object-keys true \
+          --transform-object-keys false \  # 禁用对象键转换以减少文件大小
           --self-defending false \
-          --simplify true
+          --simplify true \
+          --control-flow-flattening false \  # 禁用控制流扁平化以减少文件大小
+          --rotateStringArray true \  # 启用字符串数组旋转以增加一定的混淆强度
+          --dead-code-injection false \  # 禁用死代码注入以减少文件大小
+          --debug-protection false \  # 禁用调试保护以减少文件大小
+          --log false \  # 禁用日志以减少文件大小
+          --source-map false  # 禁用源映射以减少文件大小
+
+      - name: Check file size
+        run: |
+          if [ $(stat -c%s "_worker.js") -gt 1248576 ]; then # 1200KB = 1200 * 1024 = 1228800 bytes, add some buffer (e.g., 40KB)
+            echo "Obfuscated file exceeds 1200KB limit."
+            exit 1
+          fi
 
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
           commit_message: ':arrow_up: update latest bpb panel'
-          commit_author: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
+          commit_author: 'github-actionsbot] <github-actions[bot]@users.noreply.github.com>'
           push_options: '--set-upstream'
